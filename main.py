@@ -32,17 +32,18 @@ def main():
 
     while not window_should_close():
         dt = get_frame_time()
-        if get_time() - start_time > METEOR_TIMER_DURATION:
+        if get_time() - start_time > METEOR_TIMER_DURATION and len(meteorites) < 30:
             pos = Vector2(uniform(0, WINDOW_WIDTH-meteorite_texture.width*meteorite_scale), -meteorite_texture.height*meteorite_scale-100)
             direction = Vector2(uniform(-0.5, 0.5), 1)
-            meteorites.append([pos, direction, ])
+            fine = True
+            meteorites.append([pos, direction, fine])
             start_time = get_time()
 
         # see player movement
         player_direction.x = int(is_key_down(KEY_RIGHT) or is_key_down(KEY_D)) - int(is_key_down(KEY_LEFT) or is_key_down(KEY_A))
         player_direction.y = int(is_key_down(KEY_DOWN) or is_key_down(KEY_S)) - int(is_key_down(KEY_UP) or is_key_down(KEY_W))
         if is_key_pressed(KEY_SPACE) and len(bullets) < 10:
-            bullets.append(Vector2(player_pos.x+player_texture.width*player_scale//2-bullet_texture.width//2, player_pos.y))
+            bullets.append([Vector2(player_pos.x+player_texture.width*player_scale//2-bullet_texture.width//2, player_pos.y), True])
 
         # if len(meteorites) < 30:
 
@@ -52,24 +53,34 @@ def main():
         player_pos.x = max(min(player_pos.x, WINDOW_WIDTH-player_texture.width*player_scale), 0)
         player_pos.y = max(min(player_pos.y, WINDOW_HEIGHT-player_texture.height*player_scale), 0)
 
-        bullets = [bullet for bullet in bullets if bullet.y > -500]
-        meteorites = [[meteorite, direction] for meteorite, direction in meteorites if meteorite.y < WINDOW_HEIGHT + 100]
+        bullets = [[bullet, alive] for bullet, alive in bullets if bullet.y > -500 and alive]
+        meteorites = [[meteorite, direction, fine] for meteorite, direction, fine in meteorites if meteorite.y < WINDOW_HEIGHT + 100 and fine]
 
-        for bullet in bullets:
+        for bullet, _ in bullets:
             bullet.x += bullet_direction.x*BULLET_SPEED*dt
             bullet.y += bullet_direction.y*BULLET_SPEED*dt
 
 
-        for meteorite, meteorite_direction in meteorites:
+        for meteorite, meteorite_direction, _ in meteorites:
             meteorite.x += meteorite_direction.x*METEORITE_SPEED*dt
             meteorite.y += meteorite_direction.y*METEORITE_SPEED*dt
+        
+        for i in range(len(bullets)):
+            for j in range(len(meteorites)):
+                bullet = bullets[i][0]
+                bullet_rect = Rectangle(bullet.x, bullet.y, bullet_scale*bullet_texture.width, bullet_texture.height*bullet_scale)
+                meteorite = meteorites[j][0]
+                meteorite_rect = Rectangle(meteorite.x, meteorite.y, meteorite_scale*meteorite_texture.width, meteorite_texture.height*meteorite_scale)
+                if CheckCollisionRecs(bullet_rect, meteorite_rect):
+                    meteorites[j][2] = False
+                    bullets[i][1] = False
 
         begin_drawing()
         clear_background(BG_COLOR)
-        for bullet in bullets:
+        for bullet, _ in bullets:
             draw_texture_ex(bullet_texture, bullet, 0, bullet_scale, WHITE)
 
-        for meteorite, _ in meteorites:
+        for meteorite, _, _ in meteorites:
             draw_texture_ex(meteorite_texture, meteorite, 0, meteorite_scale, WHITE)
 
 
