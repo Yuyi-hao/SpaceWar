@@ -117,4 +117,6 @@ def main():
 if __name__=="__main__":
     init_window(WINDOW_WIDTH, WINDOW_HEIGHT, "Space War")
     init_audio_device()
+    icon = load_image(join("assets", "icon.png"))
+    set_window_icon(icon)
     main()
