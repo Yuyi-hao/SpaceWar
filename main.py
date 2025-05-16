@@ -1,16 +1,18 @@
 from pyray import *
 from raylib import *
 from os.path import join
-from random import uniform
+from random import uniform, randint
 
 BG_COLOR = Color(15, 10, 50, 255)
 PLAYER_SPEED = 500
 BULLET_SPEED = 300
 METEORITE_SPEED = 290
 WINDOW_WIDTH, WINDOW_HEIGHT = 800, 600
+METEOR_TIMER_DURATION = 0.2
 
 def main():
     # initialize raylib
+    start_time = get_time()
     player_pos = Vector2(WINDOW_WIDTH/2, WINDOW_HEIGHT/2)
     player_scale = 0.5
     player_direction = Vector2(0, 0)
@@ -25,13 +27,17 @@ def main():
 
     # meteorite
     meteorites = []
-    meteorite_scale = 1
+    meteorite_scale = 0.6
     meteorite_texture = load_texture_from_image(load_image(join('assets', 'meteor.png')))
-    meteorite_direction = Vector2(uniform(-0.5, 0.5), 1)
-    meteorites.append(Vector2(uniform(0, WINDOW_WIDTH-meteorite_texture.width*meteorite_scale), -meteorite_texture.height*meteorite_scale-100))
 
     while not window_should_close():
         dt = get_frame_time()
+        if get_time() - start_time > METEOR_TIMER_DURATION:
+            pos = Vector2(uniform(0, WINDOW_WIDTH-meteorite_texture.width*meteorite_scale), -meteorite_texture.height*meteorite_scale-100)
+            direction = Vector2(uniform(-0.5, 0.5), 1)
+            meteorites.append([pos, direction, ])
+            start_time = get_time()
+
         # see player movement
         player_direction.x = int(is_key_down(KEY_RIGHT) or is_key_down(KEY_D)) - int(is_key_down(KEY_LEFT) or is_key_down(KEY_A))
         player_direction.y = int(is_key_down(KEY_DOWN) or is_key_down(KEY_S)) - int(is_key_down(KEY_UP) or is_key_down(KEY_W))
@@ -47,24 +53,25 @@ def main():
         player_pos.y = max(min(player_pos.y, WINDOW_HEIGHT-player_texture.height*player_scale), 0)
 
         bullets = [bullet for bullet in bullets if bullet.y > -500]
-        meteorites = [meteorite for meteorite in meteorites if meteorite.y > 500]
+        meteorites = [[meteorite, direction] for meteorite, direction in meteorites if meteorite.y < WINDOW_HEIGHT + 100]
 
         for bullet in bullets:
             bullet.x += bullet_direction.x*BULLET_SPEED*dt
             bullet.y += bullet_direction.y*BULLET_SPEED*dt
 
-        for meteorite in meteorites:
+
+        for meteorite, meteorite_direction in meteorites:
             meteorite.x += meteorite_direction.x*METEORITE_SPEED*dt
             meteorite.y += meteorite_direction.y*METEORITE_SPEED*dt
 
         begin_drawing()
         clear_background(BG_COLOR)
-        print(len(meteorites))
         for bullet in bullets:
             draw_texture_ex(bullet_texture, bullet, 0, bullet_scale, WHITE)
 
-        for meteorite in meteorites:
+        for meteorite, _ in meteorites:
             draw_texture_ex(meteorite_texture, meteorite, 0, meteorite_scale, WHITE)
+
 
         for i in range(10-len(bullets)):
             draw_texture_ex(bullet_texture, Vector2((WINDOW_WIDTH - bullet_texture.width*2*0.4*(i+1)), WINDOW_HEIGHT-bullet_texture.height-10), 0, 0.4, WHITE)
