@@ -13,6 +13,7 @@ METEOR_TIMER_DURATION = 0.2
 def main():
     # initialize raylib
     start_time = get_time()
+    lives = 3
     player_pos = Vector2(WINDOW_WIDTH/2, WINDOW_HEIGHT/2)
     player_scale = 0.5
     player_direction = Vector2(0, 0)
@@ -30,7 +31,14 @@ def main():
     meteorite_scale = 0.6
     meteorite_texture = load_texture_from_image(load_image(join('assets', 'meteor.png')))
 
+    # sound load
+    laser_sound = load_sound(join('assets', 'audio', 'laser.wav'))
+    explosion_sound = load_sound(join('assets', 'audio', 'explosion.wav'))
+    bg_music = load_music_stream(join('assets', 'audio', 'music.wav'))
+    play_music_stream(bg_music)
+
     while not window_should_close():
+        update_music_stream(bg_music)
         dt = get_frame_time()
         if get_time() - start_time > METEOR_TIMER_DURATION and len(meteorites) < 30:
             pos = Vector2(uniform(0, WINDOW_WIDTH-meteorite_texture.width*meteorite_scale), -meteorite_texture.height*meteorite_scale-100)
@@ -44,6 +52,7 @@ def main():
         player_direction.y = int(is_key_down(KEY_DOWN) or is_key_down(KEY_S)) - int(is_key_down(KEY_UP) or is_key_down(KEY_W))
         if is_key_pressed(KEY_SPACE) and len(bullets) < 10:
             bullets.append([Vector2(player_pos.x+player_texture.width*player_scale//2-bullet_texture.width//2, player_pos.y), True])
+            play_sound(laser_sound)
 
         # if len(meteorites) < 30:
 
@@ -74,23 +83,38 @@ def main():
                 if CheckCollisionRecs(bullet_rect, meteorite_rect):
                     meteorites[j][2] = False
                     bullets[i][1] = False
+                    play_sound(explosion_sound)
+
+        for j in range(len(meteorites)):
+            player_rect = Rectangle(player_pos.x, player_pos.y, player_scale*player_texture.width, player_texture.height*player_scale)
+            meteorite = meteorites[j][0]
+            meteorite_rect = Rectangle(meteorite.x, meteorite.y, meteorite_scale*meteorite_texture.width, meteorite_texture.height*meteorite_scale)
+            if CheckCollisionRecs(player_rect, meteorite_rect):
+                meteorites[j][2] = False
+                lives -= 1
 
         begin_drawing()
         clear_background(BG_COLOR)
-        for bullet, _ in bullets:
-            draw_texture_ex(bullet_texture, bullet, 0, bullet_scale, WHITE)
+        if lives > 0:
+            for i in range(lives):
+                x = player_texture.width*0.2*(i+1)*1.2
+                draw_texture_ex(player_texture, Vector2(x, 20), 0, 0.2, WHITE)
 
-        for meteorite, _, _ in meteorites:
-            draw_texture_ex(meteorite_texture, meteorite, 0, meteorite_scale, WHITE)
+            for bullet, _ in bullets:
+                draw_texture_ex(bullet_texture, bullet, 0, bullet_scale, WHITE)
+
+            for meteorite, _, _ in meteorites:
+                draw_texture_ex(meteorite_texture, meteorite, 0, meteorite_scale, WHITE)
 
 
-        for i in range(10-len(bullets)):
-            draw_texture_ex(bullet_texture, Vector2((WINDOW_WIDTH - bullet_texture.width*2*0.4*(i+1)), WINDOW_HEIGHT-bullet_texture.height-10), 0, 0.4, WHITE)
-        draw_texture_ex(player_texture, player_pos, 0, player_scale, WHITE)
+            for i in range(10-len(bullets)):
+                draw_texture_ex(bullet_texture, Vector2((WINDOW_WIDTH - bullet_texture.width*2*0.4*(i+1)), WINDOW_HEIGHT-bullet_texture.height-10), 0, 0.4, WHITE)
+            draw_texture_ex(player_texture, player_pos, 0, player_scale, WHITE)
         end_drawing()
     
     close_window()
 
 if __name__=="__main__":
     init_window(WINDOW_WIDTH, WINDOW_HEIGHT, "Space War")
+    init_audio_device()
     main()
